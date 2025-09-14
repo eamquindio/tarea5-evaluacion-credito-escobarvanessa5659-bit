@@ -41,7 +41,8 @@ public class EvaluacionCredito {
      * @return Tasa mensual en porcentaje
      */
     public double calcularTasaMensual(double tasaNominalAnual) {
-        return 0;
+
+        return tasaNominalAnual / 12.0;
     }
     
     /**
@@ -53,9 +54,22 @@ public class EvaluacionCredito {
      * @return Valor de la cuota mensual en pesos
      */
     public double calcularCuotaMensual(double tasaNominalAnual, int plazoMeses) {
-        return 0;
+        if (plazoMeses <= 0 || valorCreditoSolicitado <= 0) {
+            return 0.0;
+        }
+
+        double tasaMensual = calcularTasaMensual(tasaNominalAnual) / 100.0; // pasamos a decimal
+        if (tasaMensual == 0) {
+            return Math.round((valorCreditoSolicitado / plazoMeses) * 100.0) / 100.0;
+        }
+
+        double numerador = valorCreditoSolicitado * tasaMensual;
+        double denominador = 1 - Math.pow(1 + tasaMensual, -plazoMeses);
+        double cuota = numerador / denominador;
+
+        return Math.round(cuota * 100.0) / 100.0;
     }
-    
+
     /**
      * Evalúa si el crédito debe ser aprobado según las reglas de negocio:
      * - Perfil bajo (puntaje < 500): Rechazo automático
@@ -67,11 +81,30 @@ public class EvaluacionCredito {
      * @return true si el crédito es aprobado, false si es rechazado
      */
     public boolean evaluarAprobacion(double tasaNominalAnual, int plazoMeses) {
+        double cuota = calcularCuotaMensual(tasaNominalAnual, plazoMeses);
 
-        
+        // Perfil Bajo
+        if (puntajeCredito < 500) {
+            return false;
+        }
+
+        // Perfil Medio
+        if (puntajeCredito >= 500 && puntajeCredito <= 700) {
+            return tieneCodedor && cuota <= ingresosMensuales * 0.25;
+        }
+
+        // Perfil Alto
+        if (puntajeCredito > 700) {
+            if (numeroCreditosActivos >= 2) {
+                return false; // demasiados créditos activos
+            }
+            return cuota <= ingresosMensuales * 0.30;
+        }
+
         return false;
     }
-    
+
+
     /**
      * Obtiene el nombre del solicitante.
      * @return Nombre completo del solicitante
